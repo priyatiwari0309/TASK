@@ -1,3 +1,76 @@
+
+from fastapi import FastAPI
+from pydantic import BaseModel
+from typing import Dict
+
+app = FastAPI()
+
+product_centers = {
+    "C1": {"A", "B", "C"},
+    "C2": {"D", "E", "F"},
+    "C3": {"G", "H", "I"},
+}
+
+center_distances = {
+    "C1": 10,
+    "C2": 15,
+    "C3": 20,
+}
+
+cost_per_km = 2
+
+class Order(BaseModel):
+    A: int = 0
+    B: int = 0
+    C: int = 0
+    D: int = 0
+    E: int = 0
+    F: int = 0
+    G: int = 0
+    H: int = 0
+    I: int = 0
+
+def calculate_cost(order: Dict[str, int]) -> int:
+    products = {k: v for k, v in order.items() if v > 0}
+    min_total_cost = float('inf')
+
+    for start_center in center_distances:
+        total_cost = 0
+        current_location = start_center
+        remaining = dict(products)
+
+        while remaining:
+            found = False
+            for center in center_distances:
+                center_products = product_centers[center]
+                to_pick = {p for p in remaining if p in center_products}
+                if to_pick:
+                    travel = abs(center_distances[center] - center_distances[current_location])
+                    trip_cost = travel * cost_per_km + center_distances[center] * cost_per_km
+                    total_cost += trip_cost
+                    current_location = center
+                    for product in to_pick:
+                        del remaining[product]
+                    found = True
+                    break
+            if not found:
+                break
+
+        min_total_cost = min(min_total_cost, total_cost)
+
+    return int(min_total_cost)
+
+@app.post("/calculate-cost")
+def calculate_delivery_cost(order: Order):
+    order_dict = order.dict()
+    cost = calculate_cost(order_dict)
+    return {"cost": cost}
+
+
+
+
+
+'''
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
 from typing import Dict
@@ -61,3 +134,4 @@ async def calculate(request: Order):
     order_data = request.__root__
     cost = calculate_delivery_cost(order_data)
     return {"minimum_cost": cost}
+    '''
